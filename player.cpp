@@ -15,6 +15,7 @@ Player::Player(SDL_Renderer *renderer, std::string nom, int hp, float x, float y
 {
     this->rectPlayer.x = this->x;
     this->rectPlayer.y = this->y;
+
     this->rectPlayer.w = this->width;
     this->rectPlayer.h = this->height;
     this->initRays();
@@ -174,9 +175,26 @@ void Player::updateAngleVision(SDL_Renderer *renderer, int degres)
     this->angleVision = fmod(this->angleVision + 2 * M_PI, 2 * M_PI);
     Ray r{0, 0, 0};
     r.setAngle(this->angleVision);
-    // computeXYRay(r);
+    // std::cout << this->angleVision << std::endl;
 };
+void Player::renderRay(Ray &r,int pos){
+    float dist=r.getLength();
+    int wallHeight=((CELL_SIZE*5)/dist)*250;
+    SDL_Rect rect;
+    rect.x=10*pos+800-5;//tmp
+    rect.y=HEIGHT/2-wallHeight/2;
+    rect.w=10;
+    rect.h=wallHeight;
+    if(r.getVerticalCollide()==false){
+        SDL_SetRenderDrawColor(renderer, 0, 0, 153, 0);
+    }
+    else{
+        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 0);
 
+    }
+    SDL_RenderFillRect(this->renderer,&rect);
+
+}
 void Player::drawDirection()
 {
 
@@ -195,10 +213,6 @@ void Player::drawDirection()
     // this->getRays();
 }
 
-void Player::castRay(float angle, std::vector<std::vector<int>> &map)
-{
-    // this->getVcollision(angle, map, DROITE);
-}
 
 bool outOfMapBounds(int x, int y, std::vector<std::vector<int>> &map)
 {
@@ -212,21 +226,94 @@ void Player::initRays()
         lstRays.push_back(Ray{i, i, 0});
     }
 }
-void Player::getHcollision(Ray &r, std::vector<std::vector<int>> &map, int direction)
+Ray Player::getHcollision(float angle, std::vector<std::vector<int>> &map)
 {
+    float pX = this->getCenter().x;
+    float pY = this->getCenter().y;
+    
+    int up = abs(floor(fmod((angle / M_PI) , 2)));
+    int firstY = up
+                     ? floor(pY / CELL_SIZE) * CELL_SIZE
+                     : floor(pY / CELL_SIZE) * CELL_SIZE + CELL_SIZE;
+    int firstX = pX + (firstY - pY) / tan(angle);
 
-    Coord c = this->computeXYRay(r, this->getCenter().x, this->getCenter().y);
+    int yA = up ? -CELL_SIZE : CELL_SIZE;
+    int xA = yA / tan(angle);
 
-    int wall = map[c.x][c.y];
-    float x = r.getX();
-    float y = r.getY();
-    c = this->computeXYRay(r, x, y);
-    wall = map[c.x][c.y];
-    std::cout << c.x << " " << c.y << " " << wall << std::endl;
+    int wall;
+    int nextX = firstX;
+    int nextY = firstY;
+    wall=0;
+    while (wall!=1)
+    {
+        int cellX = floor(nextX / CELL_SIZE);
+        int cellY = up
+                        ? floor(nextY / CELL_SIZE) - 1
+                        : floor(nextY / CELL_SIZE);
+
+        if (outOfMapBounds(cellX, cellY,map))
+        {
+            break;
+        }
+
+        wall = map[cellY][cellX];
+        if (!wall)
+        {
+            nextX += xA;
+            nextY += yA;
+        }
+    }
+
+    Ray r{nextX,nextY,distance(pX,pY,nextX,nextY)};
+    r.setVerticalCollide(false);
+    return r;
 }
 
-void Player::getVcollision(Ray &r, std::vector<std::vector<int>> &map, int direction)
+Ray Player::getVcollision(float angle, std::vector<std::vector<int>> &map)
 {
+    float pX = this->getCenter().x;
+    float pY = this->getCenter().y;
+    float right = abs(floor(fmod(((angle - M_PI / 2) / M_PI), 2)));
+    float firstX = right
+                       ? floor(pX / CELL_SIZE) * CELL_SIZE + CELL_SIZE
+                       : floor(pX / CELL_SIZE) * CELL_SIZE;
+
+    float firstY = pY + (firstX - pX) * tan(angle);
+
+    int xA = right ? CELL_SIZE : -CELL_SIZE;
+    int yA = xA * tan(angle);
+
+    int wall;
+    int nextX = firstX;
+    int nextY = firstY;
+    wall=0;
+    while (wall != 1)
+    {
+
+        int cellX = right
+                        ? floor(nextX / CELL_SIZE)
+                        : floor(nextX / CELL_SIZE) - 1;
+        int cellY = floor(nextY / CELL_SIZE);
+
+        if (outOfMapBounds(cellX, cellY, map))
+        {
+            break;
+        }
+        wall = map[cellY][cellX];
+        if (wall != 1)
+        {
+            nextX += xA;
+            nextY += yA;
+        }
+    };
+
+    // r.setX(nextX);
+    // r.setY(nextY);
+    // r.setLength(distance(pX,pY,nextX,nextY));
+    Ray r{nextX,nextY,distance(pX,pY,nextX,nextY)};
+    r.setVerticalCollide(true);
+    return r;
+
 }
 
 std::vector<Ray> Player::getRays(std::vector<std::vector<int>> map)
@@ -238,72 +325,113 @@ std::vector<Ray> Player::getRays(std::vector<std::vector<int>> map)
     SDL_Point center = this->getCenter();
     static int radius = 200;
 
-    int firstX;
-    static int half_NB_RAYS = NB_RAYS / 2;
-    Ray *r;
-    int absDirection;
+
     for (int i = 0; i < this->lstRays.size(); i++)
     {
         angle = this->angleVision - (FOV / 2) + angleStep * i;
         x1 = static_cast<int>(center.x + radius * std::cos(angle));
         y1 = static_cast<int>(center.y + radius * std::sin(angle));
 
-        r = &lstRays[i];
-        r->setAngle(this->angleVision);
-
-        getHcollision(*r, map, 1);
-        // std::cout<<c.x<<" "<<c.y<<std::endl;
+        Ray r = this->castRay(angle,map);
+        renderRay(r,i);
         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 0);
-        SDL_RenderDrawLine(this->renderer, r->getX(), r->getY(), center.x, center.y);
+        SDL_RenderDrawLine(this->renderer, r.getX(), r.getY(), center.x, center.y);
     }
     return lstRays;
+}
+Coord Player::computeXYRay(Ray &r, std::vector<std::vector<int>> map)
+{
+    float angle = r.getAngle();
+    int posX = floor(this->x / CELL_SIZE);
+    int posY = floor(this->y / CELL_SIZE);
+
+    float startX = this->getCenter().x;
+    float startY = this->getCenter().y;
+    float x;
+    float y;
+    float tmp;
+    float baseLength;
+    float opposeLength;
+    Coord nextCase;
+    int wall;
+    if (angle < (M_PI / 2) && angle > 0)
+    {
+        // std::cout<<"bas droite"<<std::endl;
+
+        x = (1 + posX) * CELL_SIZE;
+        y = startY;
+        baseLength = distance(startX, startY, x, y);
+        opposeLength = tan(angle) * baseLength;
+        y += opposeLength;
+        r.setX(x);
+        r.setY(y);
+        r.setBaseLength(baseLength);
+        nextCase = getNextCase(r);
+        wall = map[nextCase.x][nextCase.y];
+        while (wall != 1)
+        {
+            baseLength += CELL_SIZE;
+            opposeLength = getNewOpposeLength(r.getBaseLength(), opposeLength, baseLength);
+            y = startY + opposeLength;
+            x += CELL_SIZE;
+
+            r.setX(x);
+            r.setY(y);
+            r.setBaseLength(baseLength);
+
+            nextCase = getNextCase(r);
+            wall = map[nextCase.x][nextCase.y];
+            std::cout << nextCase.y << " " << nextCase.x << " " << map[nextCase.y][nextCase.x] << std::endl;
+        }
+    }
+    else if (angle >= (M_PI / 2) && angle < M_PI)
+    {
+        // std::cout<<"bas gauche"<<std::endl;
+        x = posX * CELL_SIZE;
+        y = startY;
+        baseLength = distance(startX, startY, x, y);
+        opposeLength = tan(M_PI - angle) * baseLength;
+        y += opposeLength;
+        r.setX(x);
+        r.setY(y);
+        r.setBaseLength(baseLength);
+    }
+    else if (angle >= M_PI && angle < M_PI + (M_PI / 2))
+    {
+        // std::cout<<"haut gauche"<<std::endl;
+        x = posX * CELL_SIZE;
+        y = startY;
+        baseLength = distance(startX, startY, x, y);
+        opposeLength = tan(angle - M_PI) * baseLength;
+        y -= opposeLength;
+        r.setX(x);
+        r.setY(y);
+        r.setBaseLength(baseLength);
+    }
+    else
+    {
+        x = (1 + posX) * CELL_SIZE;
+        y = startY;
+        baseLength = distance(startX, startY, x, y);
+
+        opposeLength = tan(angle - ((M_PI + 2 * M_PI))) * baseLength;
+        y += opposeLength;
+        r.setX(x);
+        r.setY(y);
+        r.setBaseLength(baseLength);
+    }
+
+    return this->getNextCase(r);
 }
 
 SDL_Rect *Player::getRect()
 {
     return &this->rectPlayer;
 }
-
-// int getRelativeDirection(float angle)
-// {
-
-//     int absDir = getAbsoluteDirection(angle);
-//     angle = radiansTodegree(angle);
-//     switch (absDir)
-//     {
-//     case 1:
-//         if (angle < 270.0f)
-//         {
-//             return GAUCHE;
-//         }
-//         return DROITE;
-//         break;
-//     case 2:
-//         if ((angle < 360.0f && angle > 315.0f))
-//         {
-//             return GAUCHE;
-//         }
-//         return DROITE;
-//         break;
-//     case 3:
-//         if (angle < 90.0f)
-//         {
-//             return GAUCHE;
-//         }
-//         return DROITE;
-//         break;
-//     case 4:
-//         if (angle < 180.0f)
-//         {
-//             return GAUCHE;
-//         }
-//         return DROITE;
-//         break;
-
-//     default:
-//         break;
-//     }
-// }
+float getNewOpposeLength(float baseLength, float opposeLength, float newBaseLength)
+{
+    return newBaseLength * opposeLength / baseLength;
+}
 int getAbsoluteDirection(float angle)
 {
     float res = angle * (180 / M_PI);
@@ -366,62 +494,15 @@ float radiansTodegree(float angle)
     }
     return res;
 }
-Coord Player::computeXYRay(Ray &r, float startX, float startY)
-{
-    float angle = r.getAngle();
-    int posX = floor(this->x / CELL_SIZE);
-    int posY = floor(this->y / CELL_SIZE);
-
-    float x;
-    float y;
-    float tmp;
-    float baseLength;
-    float opposeLength;
-    Coord nextCase;
-    if (angle < (M_PI / 2) && angle > 0)
-    {
-        // std::cout<<"bas droite"<<std::endl;
-
-        x = (1 + posX) * CELL_SIZE;
-        y = startY;
-        baseLength = distance(startX, startY, x, y)+CELL_SIZE;
-        SDL_RenderDrawLine(this->renderer,startX,startY,x+CELL_SIZE,y);
-        opposeLength = tan(angle) * baseLength;
-        y += opposeLength;
+Ray Player::castRay(float angle,std::vector<std::vector<int>> &map){
+    Ray r1=this->getVcollision(angle,map);
+    Ray r2=this->getHcollision(angle,map);
+    
+    if(r1.getLength()>r2.getLength()){
+        return r2;
     }
-    else if (angle >= (M_PI / 2) && angle < M_PI)
-    {
-        // std::cout<<"bas gauche"<<std::endl;
-        x = posX * CELL_SIZE;
-        y = startY;
-        baseLength = distance(startX, startY, x, y);
-        opposeLength = tan(M_PI - angle) * baseLength;
-        y += opposeLength;
-    }
-    else if (angle >= M_PI && angle < M_PI + (M_PI / 2))
-    {
-        // std::cout<<"haut gauche"<<std::endl;
-        x = posX * CELL_SIZE;
-        y = startY;
-        baseLength = distance(startX, startY, x, y);
-        opposeLength = tan(angle - M_PI) * baseLength;
-        y -= opposeLength;
-    }
-    else
-    {
-        x = (1 + posX) * CELL_SIZE;
-        y = startY;
-        baseLength = distance(startX, startY, x, y);
-
-        opposeLength = tan(angle - ((M_PI + 2 * M_PI))) * baseLength;
-        y += opposeLength;
-    }
-    r.setX(x);
-    r.setY(y);
-    r.setBaseLength(baseLength);
-    return this->getNextCase(r);
+    return r1;
 }
-
 Coord Player::getNextCase(Ray &r)
 {
     Coord c;

@@ -22,6 +22,10 @@ float Ray::getAngle() {
 float Ray::getBaseLength(){
     return this->baseLength;
 }
+bool Ray::getVerticalCollide(){
+    return this->verticalCollide;
+}
+
 
 void Ray::setX(int x){
     this->x=x;
@@ -34,4 +38,10 @@ void Ray::setAngle(float angle){
 }
 void Ray::setBaseLength(float baseLength){
     this->baseLength=baseLength;
+}
+void Ray::setLength(float l){
+    this->length=l;
+}
+void Ray::setVerticalCollide(bool x){
+    this->verticalCollide=x;
 }

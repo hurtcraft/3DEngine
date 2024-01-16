@@ -47,20 +47,21 @@ public :
     void drawDirection();
     
     std::vector<Ray> getRays(std::vector<std::vector<int>>);
-    void castRay(float angle,std::vector<std::vector<int>> &map);
-    void getHcollision(Ray &r,std::vector<std::vector<int>> &map,int direction);
-    void getVcollision(Ray &r ,std::vector<std::vector<int>> &map,int direction);
+    Ray castRay(float angle,std::vector<std::vector<int>> &map);
+    Ray getHcollision(float angle,std::vector<std::vector<int>> &map);
+    Ray getVcollision(float angle,std::vector<std::vector<int>> &map);
     SDL_Point getCenter();
     SDL_Rect *getRect();
 
-    Coord computeXYRay(Ray &r,float startX,float startY);
+    Coord computeXYRay(Ray &r,std::vector<std::vector<int>> map);
     Coord getNextCase(Ray &r);
     void initRays();
+    void renderRay(Ray &r,int pos);
 };
 
 int getAbsoluteDirection(float angle);//1:haut 2:droite 3:bas 4:gauche
 int getRelativeDirection(float angle); // 0 pour gauche 1 pour droite
-
+float getNewOpposeLength(float baseLength,float opposeLength,float newBaseLength);
 float radiansTodegree(float angle);
 
 

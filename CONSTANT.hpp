@@ -7,7 +7,7 @@ const int HEIGHT= 704;
 const int TILE_W=64;
 const int TILE_H=64;
 
-const float NB_RAYS=100.0f;
+const float NB_RAYS=200.0f;
 const float FOV=60.0f*M_PI/180;
 
 const int CELL_SIZE=100;
