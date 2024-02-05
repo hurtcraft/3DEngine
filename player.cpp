@@ -181,9 +181,11 @@ void Player::renderRay(Ray &r,int pos){
     float dist=r.getLength();
     int wallHeight=((CELL_SIZE*5)/dist)*250;
     SDL_Rect rect;
-    rect.x=10*pos+800-5;//tmp
+    //rect.x=10*pos+800-5;//tmp
+    static int wallWidth=2;
+    rect.x=wallWidth*pos;
     rect.y=HEIGHT/2-wallHeight/2;
-    rect.w=10;
+    rect.w=wallWidth;
     rect.h=wallHeight;
     if(r.getVerticalCollide()==false){
         SDL_SetRenderDrawColor(renderer, 0, 0, 153, 0);
@@ -193,6 +195,7 @@ void Player::renderRay(Ray &r,int pos){
 
     }
     SDL_RenderFillRect(this->renderer,&rect);
+
 
 }
 void Player::drawDirection()
@@ -237,8 +240,8 @@ Ray Player::getHcollision(float angle, std::vector<std::vector<int>> &map)
                      : floor(pY / CELL_SIZE) * CELL_SIZE + CELL_SIZE;
     int firstX = pX + (firstY - pY) / tan(angle);
 
-    int yA = up ? -CELL_SIZE : CELL_SIZE;
-    int xA = yA / tan(angle);
+    float yA = up ? -CELL_SIZE : CELL_SIZE;
+    float xA = yA / tan(angle);
 
     int wall;
     int nextX = firstX;
@@ -264,7 +267,7 @@ Ray Player::getHcollision(float angle, std::vector<std::vector<int>> &map)
         }
     }
 
-    Ray r{nextX,nextY,distance(pX,pY,nextX,nextY)};
+    Ray r{nextX,nextY,distance(pX,pY,nextX+0.5,nextY+0.5)};
     r.setVerticalCollide(false);
     return r;
 }
@@ -280,8 +283,8 @@ Ray Player::getVcollision(float angle, std::vector<std::vector<int>> &map)
 
     float firstY = pY + (firstX - pX) * tan(angle);
 
-    int xA = right ? CELL_SIZE : -CELL_SIZE;
-    int yA = xA * tan(angle);
+    float xA = right ? CELL_SIZE : -CELL_SIZE;
+    float yA = xA * tan(angle);
 
     int wall;
     int nextX = firstX;
@@ -310,7 +313,7 @@ Ray Player::getVcollision(float angle, std::vector<std::vector<int>> &map)
     // r.setX(nextX);
     // r.setY(nextY);
     // r.setLength(distance(pX,pY,nextX,nextY));
-    Ray r{nextX,nextY,distance(pX,pY,nextX,nextY)};
+    Ray r{nextX,nextY,distance(pX,pY,nextX+0.5,nextY+0.5)};
     r.setVerticalCollide(true);
     return r;
 
@@ -319,22 +322,19 @@ Ray Player::getVcollision(float angle, std::vector<std::vector<int>> &map)
 std::vector<Ray> Player::getRays(std::vector<std::vector<int>> map)
 {
     float initialAngle = this->angleVision - FOV / 2;
-    float angleStep = FOV / NB_RAYS;
+    double angleStep = FOV / NB_RAYS;
     float angle;
     int x1, y1;
     SDL_Point center = this->getCenter();
-    static int radius = 200;
 
 
     for (int i = 0; i < this->lstRays.size(); i++)
     {
         angle = this->angleVision - (FOV / 2) + angleStep * i;
-        x1 = static_cast<int>(center.x + radius * std::cos(angle));
-        y1 = static_cast<int>(center.y + radius * std::sin(angle));
 
         Ray r = this->castRay(angle,map);
         renderRay(r,i);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 0);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);// pr debug
         SDL_RenderDrawLine(this->renderer, r.getX(), r.getY(), center.x, center.y);
     }
     return lstRays;

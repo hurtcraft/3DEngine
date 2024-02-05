@@ -12,6 +12,8 @@
 
 void exitWithError(const char *msg);
 void drawMap(SDL_Renderer *renderer, const std::vector<std::vector<int>> &map);
+void drawFloor(SDL_Renderer *renderer);
+void drawCeil(SDL_Renderer *renderer);
 int main(int argc, char *argv[])
 {
     SDL_Window *window = NULL;
@@ -42,23 +44,30 @@ int main(int argc, char *argv[])
     const int facteur = 100;
     int FOV = 100;
 
-    Player p{renderer, "toto", 100, 300, 300};
+    Player p{renderer, "toto", 100, 300, 100};
     std::vector<std::vector<int>> map{
         {1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 0, 0, 0, 0, 0, 1},
         {1, 1, 1, 0, 0, 0, 0, 1},
         {1, 0, 0, 0, 0, 0, 0, 1},
-        {1, 0, 0, 0, 0, 1, 0, 1},
-        {1, 0, 0, 0, 0, 0, 0, 1},
+        {1, 0, 1, 0, 0, 1, 0, 1},
+        {1, 1, 1, 0, 0, 0, 0, 1},
+        {1, 1, 0, 0, 0, 0, 0, 1},
+        {1, 0, 1, 0, 1, 1, 0, 1},
+        {1, 0, 0, 0, 1, 1, 1, 1},
+        {1, 1, 0, 0, 0, 0, 0, 1},
+        {1, 0, 0, 1, 0, 0, 0, 1},
+        {1, 0, 0, 1, 0, 1, 0, 1},
         {1, 1, 1, 1, 1, 1, 1, 1}};
 
     int mouseX = 0;
-
     while (run)
     {
 
         SDL_SetRenderDrawColor(renderer, 200, 200, 200, 0);
         SDL_RenderClear(renderer);
+        drawCeil(renderer);
+        drawFloor(renderer);
 
         SDL_Event event;
 
@@ -84,13 +93,13 @@ int main(int argc, char *argv[])
             }
         }
 
+        // p.drawDirection();
+        // p.drawRays();
+        p.getRays(map);
+        p.drawPlayer();
+
         drawMap(renderer, map);
 
-        // p.drawRays();
-        p.drawDirection();
-        p.drawPlayer();
-        p.getRays(map);
-        // p.getRays(map);
         SDL_RenderPresent(renderer);
     }
 
@@ -100,6 +109,28 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void drawFloor(SDL_Renderer *renderer)
+{
+    SDL_Rect rect;
+    rect.w = WIDTH;
+    rect.h = HEIGHT / 2;
+    rect.x = 0;
+    rect.y = HEIGHT / 2;
+
+    SDL_SetRenderDrawColor(renderer, 50, 50, 50, 0);
+    SDL_RenderFillRect(renderer, &rect);
+}
+void drawCeil(SDL_Renderer *renderer)
+{
+    SDL_Rect rect;
+    rect.w = WIDTH;
+    rect.h = HEIGHT / 2;
+    rect.x = 0;
+    rect.y = 0;
+
+    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 0);
+    SDL_RenderFillRect(renderer, &rect);
+}
 void drawMap(SDL_Renderer *renderer, const std::vector<std::vector<int>> &map)
 {
     static SDL_Rect rect;
@@ -109,15 +140,19 @@ void drawMap(SDL_Renderer *renderer, const std::vector<std::vector<int>> &map)
     {
         for (int j = 0; j < map[0].size(); ++j)
         {
-            rect.x = j * 100;
-            rect.y = i * 100;
+            rect.x = j * CELL_SIZE;
+            rect.y = i * CELL_SIZE;
             if (map[i][j] == 1)
             {
                 SDL_SetRenderDrawColor(renderer, 100, 100, 100, 0);
-
                 SDL_RenderFillRect(renderer, &rect);
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
             }
+            else
+            {
+                // SDL_SetRenderDrawColor(renderer, 50, 50, 50, 0);
+            }
+
             SDL_RenderDrawRect(renderer, &rect);
         }
     }

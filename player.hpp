@@ -21,7 +21,7 @@ private :
     float dx;
     float dy;
 
-    int velocity=5;
+    int velocity=2;
 
     //const int FOV=60;
     float angleVision=0;
